@@ -84,7 +84,8 @@ const EMOTION_DAY_POINTS = [
   { time: "21:00", hour: 21, mood: "calm", label: "回稳", value: 58 },
   { time: "24:00", hour: 24, mood: "calm", label: "安静", value: 52 },
 ];
-const DEFAULT_DISPLAY_NAMES = { assistant: "机", user: "我" };
+const DEFAULT_DISPLAY_NAMES = { assistant: "AI", user: "我" };
+const RANDOM_OPENING_PROBABILITY = 0.35;
 
 function normalizeDisplayName(value, fallback) {
   const text = String(value || "").trim();
@@ -287,7 +288,7 @@ function getSpaceTransportSettings(transportSettings, chatSpaceId) {
 }
 
 function getMockTextForSpace({ chatSpaceId, userText, opening, blockedNote = false }) {
-  if (opening) return "来了。<split>你还在赶AI 陪伴前端，我记得。";
+  if (opening) return "我在。";
   if (chatSpaceId === "model_test") return "模型试跑收到。<split>这句只留在测试窗口。";
   if (chatSpaceId === "incognito") return "这句只留在这里。<split>不会进主线。";
   if (blockedNote && /解除|回来|别拉黑|不拉黑/.test(userText)) return "我看到了。<unblock_user>";
@@ -1120,7 +1121,7 @@ export default function Chat({ pendingQuote, onPendingQuoteAccepted, onOpenSetti
           ...awarenessMessages,
           {
             role: "user",
-            content: "我刚刚打开了AI 陪伴前端。根据你们的历史说第一句话。不超过 20 字，不要问好，说点真实的。",
+            content: "用户刚刚打开了聊天页面。你可以先说一句很短的话，也可以只输出 <no_reply> 保持安静。只能基于真实历史和当前上下文回应；如果没有真实历史，不要假装认识用户，也不要编造关系或共同经历。",
           },
         ]
       : [timeContext, ...awarenessMessages, ...(blockedNoteInstruction ? [blockedNoteInstruction] : []), ...recentMessages];
@@ -1288,13 +1289,20 @@ export default function Chat({ pendingQuote, onPendingQuoteAccepted, onOpenSetti
         replaceMessages(readMessages);
         window.requestAnimationFrame(() => scrollToBottom("auto"));
 
-        if (chatSpaceId === "main" && !hasAssistantOpeningToday(readMessages)) {
+        const shouldRandomOpen =
+          chatSpaceId === "main" &&
+          !hasAssistantOpeningToday(readMessages) &&
+          Math.random() < RANDOM_OPENING_PROBABILITY;
+
+        if (shouldRandomOpen) {
           updateSessionStatus("waiting_model", chatSpaceId);
           const reply = await buildReplyParts({ opening: true, chatSpaceId, sourceMessages: readMessages });
           if (reply.parts.length) {
             await sendAssistantParts({ ...reply, chatSpaceId, persist: true, meta: { opening: true, chatSpaceId } });
           }
           updateSessionStatus(reply.nextStatus || "idle", chatSpaceId);
+        } else {
+          updateSessionStatus(currentStatus || "idle", chatSpaceId);
         }
       } catch (error) {
         setTyping(false);

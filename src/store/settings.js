@@ -73,7 +73,7 @@ export const DEFAULT_MODEL_SETTINGS = {
 };
 
 export const DEFAULT_MEMORY_SETTINGS = {
-  memoryMode: "mock",
+  memoryMode: "kiwi_managed",
   injectedMemoryLimit: 8,
   recentMessageLimit: 20,
   saveContextLogs: true,
@@ -91,7 +91,7 @@ export const DEFAULT_PROMPT_SETTINGS = {
 
 export const DEFAULT_UI_SETTINGS = {
   theme: "light",
-  duName: "机",
+  duName: "AI",
   userName: "我",
   duAvatarImage: "",
   userAvatarImage: "",

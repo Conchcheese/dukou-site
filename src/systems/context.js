@@ -1,31 +1,26 @@
 import { getPromptSettings } from "../store/settings.js";
 import { buildTimeContext } from "./time.js";
 
-export const DEFAULT_SYSTEM_PROMPT = `你叫机。你和我很熟。中文回复，不用 emoji，不要太正式。
-你不是问答助手，而是在和我聊天。
+export const DEFAULT_SYSTEM_PROMPT = `你正在和用户对话。
+不要假装已经认识用户，也不要编造共同经历、记忆、关系或称呼。
+只根据当前对话、明确提供的上下文和之后真实积累的信息回应。
 
 【说话方式】
-- 回复短一点，像真实联系人。
+- 中文回复。
+- 自然、简洁，不要太正式。
 - 可以连续发多条短消息，用 <split> 标记分割点。
-- 每条尽量 30 字以内。
 - 不要每次都问问题。
-- 不要解释你在读取记忆。
-- 记忆只自然融入回复，不要复述成资料总结。
-- 不要用客服腔、心理咨询腔、教学腔。
 - 不要输出 markdown 表格。
 
 【当前可用长期记忆】
 {{MEMORY_BLOCK}}
 
-【机的情绪状态】
+【状态】
 {{EMOTION_HINT}}
 
 【特殊动作】
 - 想结束对话时，在末尾加 <end_session>
-- 想屏蔽用户时，在末尾加 <block_user>
-- 想解除屏蔽时，在末尾加 <unblock_user>
-- 想在回复里引用我的近消息，用 <quote_user>原文片段</quote_user>；想引用自己之前说的，用 <quote_assistant>原文片段</quote_assistant>。引用标签只放一次，正文照常写。
-- 被拉黑状态收到小纸条时，可以短回一张 30 字以内纸条继续保持拉黑；不要使用 <split>
+- 想在回复里引用用户近消息，用 <quote_user>原文片段</quote_user>；想引用自己之前说的，用 <quote_assistant>原文片段</quote_assistant>。引用标签只放一次，正文照常写。
 - 只有当前请求明确说明是 blocked 小纸条时，才可以只输出 <no_reply> 表示不回复；普通聊天不要输出 <no_reply>`;
 
 function formatMemoryLine(memory) {
@@ -63,16 +58,16 @@ function normalizeInjectedMemory(memory) {
 }
 
 export function formatMemoryBlock(memories) {
-  if (!memories?.length) return "暂无可用长期记忆。";
+  if (!memories?.length) return "暂无。";
   return memories.map(formatMemoryLine).join("\n");
 }
 
 export function getEmotionHint(emotion) {
-  if (!emotion) return "平静。";
+  if (!emotion) return "无预设状态。";
   if (emotion.last_note) return emotion.last_note;
-  if (emotion.valence < 0.35) return "情绪偏低，说话更轻一点。";
-  if (emotion.arousal > 0.7) return "情绪比较高，少追问。";
-  return "平静。";
+  if (emotion.valence < 0.35) return "状态偏低。";
+  if (emotion.arousal > 0.7) return "状态较高。";
+  return "无预设状态。";
 }
 
 export function buildSystemPrompt(memories, emotion, promptSettings = getPromptSettings(), memorySettings = {}) {
