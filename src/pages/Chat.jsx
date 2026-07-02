@@ -277,12 +277,12 @@ function getSpaceTransportSettings(transportSettings, chatSpaceId) {
   if (chatSpaceId === "model_test") {
     return {
       ...transportSettings,
-      chatTransport: chatTransport === "mock" ? "mock" : "direct_model",
+      chatTransport: chatTransport === "mock" ? "mock" : chatTransport,
     };
   }
   return {
     ...transportSettings,
-    chatTransport: chatTransport === "direct_model" ? "direct_model" : "mock",
+    chatTransport: ["direct_model", "backend_gateway"].includes(chatTransport) ? chatTransport : "mock",
   };
 }
 

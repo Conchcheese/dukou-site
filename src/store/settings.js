@@ -62,11 +62,11 @@ export const PROVIDER_PRESETS = {
 };
 
 export const DEFAULT_MODEL_SETTINGS = {
-  provider: "deepseek",
+  provider: import.meta.env.VITE_MODEL_PROVIDER || "custom_openai_compatible",
   apiStyle: "openai_compatible",
   apiKey: "",
-  baseUrl: "https://api.deepseek.com",
-  model: "deepseek-chat",
+  baseUrl: import.meta.env.VITE_MODEL_BASE_URL || "",
+  model: import.meta.env.VITE_BACKEND_MODEL || import.meta.env.VITE_MODEL_NAME || "gpt-5.5",
   temperature: 0.8,
   maxTokens: 1000,
   outputMode: "sentence",
@@ -81,7 +81,7 @@ export const DEFAULT_MEMORY_SETTINGS = {
 };
 
 export const DEFAULT_TRANSPORT_SETTINGS = {
-  chatTransport: "mock",
+  chatTransport: import.meta.env.VITE_CHAT_TRANSPORT || "backend_gateway",
 };
 
 export const DEFAULT_PROMPT_SETTINGS = {

@@ -9,9 +9,60 @@ const EMPTY_USAGE = {
   cacheWriteTokens: 0,
 };
 
-const PLACEHOLDER_MESSAGES = {
-  backend_gateway: "backend_gateway 目前只是未来后端占位。本轮没有 Node / Express 网关请求。",
-};
+const DEFAULT_BACKEND_GATEWAY_URL = "/v1/chat/completions";
+
+function getBackendGatewayUrl() {
+  return String(import.meta.env.VITE_BACKEND_GATEWAY_URL || DEFAULT_BACKEND_GATEWAY_URL).trim();
+}
+
+async function readResponseJson(response) {
+  try {
+    return await response.json();
+  } catch {
+    return {};
+  }
+}
+
+async function callBackendGateway({ messages, systemPrompt, modelSettings, signal }) {
+  const url = getBackendGatewayUrl();
+  if (!url) throw new Error("缺少 Backend Gateway URL");
+
+  const response = await fetch(url, {
+    method: "POST",
+    signal,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer frontend-gateway",
+    },
+    body: JSON.stringify({
+      model: modelSettings?.model || import.meta.env.VITE_BACKEND_MODEL || "gpt-5.5",
+      temperature: Number(modelSettings?.temperature ?? 0.8),
+      max_tokens: Number(modelSettings?.maxTokens ?? 1000),
+      stream: false,
+      messages: [{ role: "system", content: systemPrompt }, ...messages],
+    }),
+  });
+
+  const data = await readResponseJson(response);
+  if (!response.ok) {
+    throw new Error(data?.error?.message || data?.message || `Backend Gateway 请求失败 ${response.status}`);
+  }
+
+  return {
+    ok: true,
+    text: data?.choices?.[0]?.message?.content || "",
+    reasoningContent: data?.choices?.[0]?.message?.reasoning_content || "",
+    reasoningSource: data?.choices?.[0]?.message?.reasoning_content ? "reasoning_content" : undefined,
+    usage: {
+      inputTokens: data?.usage?.prompt_tokens ?? 0,
+      outputTokens: data?.usage?.completion_tokens ?? 0,
+      totalTokens: data?.usage?.total_tokens ?? 0,
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+    },
+    transport: "backend_gateway",
+  };
+}
 
 const KIWI_LOCAL_PLACEHOLDER_KEY = "dukou-kiwi-local";
 
@@ -77,6 +128,25 @@ export async function sendChatRequest({
     });
   }
 
+  if (chatTransport === "backend_gateway") {
+    try {
+      return await callBackendGateway({ messages, systemPrompt, modelSettings, signal });
+    } catch (error) {
+      return {
+        ok: false,
+        text: "",
+        reasoningContent: "",
+        reasoningSource: undefined,
+        usage: EMPTY_USAGE,
+        transport: chatTransport,
+        error: {
+          type: "backend_gateway",
+          message: error?.message || "Backend Gateway 请求失败",
+        },
+      };
+    }
+  }
+
   return {
     ok: false,
     text: "",
@@ -85,8 +155,8 @@ export async function sendChatRequest({
     usage: EMPTY_USAGE,
     transport: chatTransport,
     error: {
-      type: "not_implemented",
-      message: PLACEHOLDER_MESSAGES[chatTransport],
+      type: "config",
+      message: "未知聊天通道",
     },
   };
 }
