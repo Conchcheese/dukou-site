@@ -15,6 +15,10 @@ function getBackendGatewayUrl() {
   return String(import.meta.env.VITE_BACKEND_GATEWAY_URL || DEFAULT_BACKEND_GATEWAY_URL).trim();
 }
 
+function getBackendGatewayToken() {
+  return String(import.meta.env.VITE_HEARTBEAT_TOKEN || "").trim();
+}
+
 async function readResponseJson(response) {
   try {
     return await response.json();
@@ -33,6 +37,7 @@ async function callBackendGateway({ messages, systemPrompt, modelSettings, signa
     headers: {
       "Content-Type": "application/json",
       Authorization: "Bearer frontend-gateway",
+      ...(getBackendGatewayToken() ? { "X-Heartbeat-Token": getBackendGatewayToken() } : {}),
     },
     body: JSON.stringify({
       model: modelSettings?.model || import.meta.env.VITE_BACKEND_MODEL || "gpt-5.5",
